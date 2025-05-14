@@ -1,0 +1,12 @@
+{
+"balrog_basedir": "/disk2/lukas/EnzymeOracle/data/GCFID/250423_RL-8-83_145X 2025-04-23 14-14-56",
+"run_name": "PgA93_145X_24_04",
+"parent_wells": ["C05", "D06", "E07", "F08"],
+"out_dir": "/disk2/lukas/EnzymeOracle/data/GCFID",
+"starting_material": 3.84,
+"internal_standard": 4.67,
+"product": 5.45,
+"visualization_partial": "/disk2/lukas/EnzymeOracle/data/LevSeq/20250424_PgA93_SSM2-2153/visualization_partial.csv",
+"ZS_table": "/disk2/lukas/EnzymeOracle/data/GCFID/ZS_correlation.csv",
+"retardations": "3-site: 3.94, 4.76, 5.542; 5-site: 3.84, 4.67, 5.45"
+}
