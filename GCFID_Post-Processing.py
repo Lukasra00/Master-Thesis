@@ -1,3 +1,24 @@
+"""
+This script postprocesses raw data of a gas chromatography flame ionization detection device (GCFID).
+Date: 25.05.2025
+Author: Lukas Radtke <lradtke@calteche.edu>
+
+INPUTS in the json [key: description]:
+- "balrog_basedir": Basedirectory of the analysis-run
+- "run_name": Name of the analysis-run
+- "parent_wells": List of wells, were the parent mutant was present 
+- "out_dir": Basedirectory were outputs shall be stored.
+- "starting_material": Column retention time of starting material [min] 
+- "internal_standard": Column retention time of internal standard [min] 
+- "product": Column retention time of product material [min] 
+- "visualization_partial": Outpath of levseq streamlit visualization partial ->see: 
+- "ZS_table": The correlation df to which to append the ground truth fitness values,
+
+OUTPUTS:
+- Plate array (.csv) that holds sequence and fitness data
+- Levseq Streamlit app visualization partial 
+
+"""
 import os
 import ipdb
 import pandas as pd
@@ -51,7 +72,13 @@ class EvalBalrog():
         
         self.add_paths_to_platemap()
         
-    def find_peak(self, retention_time, data_headers, df):
+    def find_peak(self, 
+                  retention_time: float, 
+                  data_headers: list[str], 
+                  df: pd.DataFrame):
+        """
+        Finds the GCFID peak for a expected retention time (within a +/- 0.05min range).
+        """
         peak_idx = (df[data_headers["Retention Time"]] - retention_time).abs().idxmin()
         exact_peak_retention = df.loc[peak_idx ,data_headers["Retention Time"]] 
         upper_time_bound = retention_time + .05
@@ -65,6 +92,9 @@ class EvalBalrog():
         return peak_area, exact_peak_retention
     
     def add_paths_to_platemap(self):
+        """
+        For each well, adds the raw data paths of the GCFID to the plate map dict.  
+        """
         for folder in os.listdir(self.balrog_basedir):
             if folder[-5:-2] in self.plate_map.keys():
                 well_path = os.path.join(self.balrog_basedir, folder)
@@ -75,6 +105,9 @@ class EvalBalrog():
                 self.plate_map[folder[-5:-2]]['data_path'] = data_path
     
     def map_fitness(self):
+        """
+        For each well, adds fitness values to the plate map and normalized them.
+        """
         self.n_peakless_wells = 0
         for well in self.plate_map.keys():
             try:
@@ -130,9 +163,17 @@ class EvalBalrog():
         
         self.score = [float(self.plate_map[well]['product_norm_to_parent']) for well in self.plate_map.keys()]
         self.frac_improved = len([var for var in self.score if var > 1]) / len(self.score)
+        ipdb.set_trace()
 
 
     def map_fitness_half(self):
+        """
+        Used when one plate is run under two conditions and hence requires separate
+        normalization: 
+        - Upper half (wells A01 - D12)
+        - Lower hald (wells E01 - H12)
+        For each well, adds fitness values to the plate map and normalized them.
+        """
         self.n_peakless_wells = 0
         for well in self.plate_map.keys():
             try:
@@ -226,12 +267,20 @@ class EvalBalrog():
         self.frac_improved = len([var for var in self.score if var > 1]) / len(self.score)       
 
 
-    def well_format_converter(self, well):
+    def well_format_converter(self, well: str):
+        """
+        Converts between well str formats: i.e. 'A01' -> 'A1' and vice versa.
+        """
         row, num = well[0], well[1:]
         return f"{row}{int(num)}" if num[0] == "0" else f"{row}{int(num):02d}"
 
     
     def seq_map(self):
+        """
+        Writes mutations to the streamlit partial.
+        Writes mutations to the plate map.
+        Collects all parent wells.
+        """
         vis_par = pd.read_csv(self.visualization_partial)
         for well in self.plate_map.keys():
             well_short = self.well_format_converter(well)
@@ -245,7 +294,11 @@ class EvalBalrog():
             if var == '#PARENT#':
                 self.parent_wells.append(well)
 
+
     def save_streamlit_partial(self):
+        """
+        Saves the levseq streamlit app partial in adequate format.
+        """
         streamlit_data = []
         for i, well in enumerate(self.plate_map.keys()):
             try:
@@ -266,6 +319,9 @@ class EvalBalrog():
         print('Saved streamlit partial.')        
 
     def save_plate_array(self):
+        """
+        Saves the fitness and the mutations as a plate map (.csv) array.
+        """
         try:
             fit_arr = pd.DataFrame([self.score[i:i+12] for i in range(0, 96, 12)])
             var_arr = pd.DataFrame([self.vars[i:i+12] for i in range(0, 96, 12)])
@@ -277,7 +333,9 @@ class EvalBalrog():
             print(f'Could not save plate array: {exc}')
 
     def print_metrics(self):
-        # print some metrics:
+        """
+        Prints some metrics.
+        """
         print(f'Number of wells, where at least one peak is missing: {self.n_peakless_wells}')
         print(f'Fraction of variants that are improved: {self.frac_improved:.2f}\n')
         print(f'Best variant fitness: {max(self.score):.2f}\n')
@@ -285,6 +343,9 @@ class EvalBalrog():
         print(f'Unsorted fitness: {self.score}\n')
     
     def fit_to_ZS_table(self):
+        """
+        Adds the ground-truth fitness values to the ZS csv table of SSM.
+        """
         ZS_table = pd.read_csv(self.ZS_table)
         
         for i, row in ZS_table.iterrows():
