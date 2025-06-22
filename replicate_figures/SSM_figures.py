@@ -10,7 +10,7 @@ from glob import glob
 import re
 import seaborn as sns
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
+from scipy import stats
 
 
 from utils import palette_light, palette_saturated, amino_acids, hydro_scale
@@ -18,10 +18,10 @@ from utils import palette_light, palette_saturated, amino_acids, hydro_scale
 
 
 # This script can be used to re-create the panel concerning itself with the SSM
-out_dir = '/disk2/lukas/Master-Thesis/replicate_figures/figure_output/'
+out_dir = '/disk2/lukas/Master_Thesis/replicate_figures/figure_output/'
 
 # Subfigure for ZS site prediction
-corr_df = '/disk2/lukas/Master-Thesis/data/Correlation_df.csv'
+corr_df = '/disk2/lukas/Master_Thesis/data/Correlation_df.csv'
 out_SSM = os.path.join(out_dir,'SSM_panel', 'ZS_SSM_site_prediction.png')
 corr_df = pd.read_csv(corr_df)
 ranking_dict = {}
@@ -48,27 +48,30 @@ sites = ['56X',
          '89X', 
          '90X', 
          '93X', 
-         '145X'
+         '145X',
+         'WT'
         ] 
-corr_df['AF3'] = -corr_df['AF3'] # reinvert, because FZL inverted before
+
+corr_df['AF3'] = corr_df['AF3'] # reinvert, because FZL inverted before
 grouped_af3 = [corr_df[corr_df['site'] == site]['AF3'].dropna().values 
                for site in sites
             ]
 
 plt.figure(figsize=(8, 5))
 box = plt.boxplot(grouped_af3, 
-            labels=[site[:-1] for site in sites],
-            patch_artist=True,
+            labels=[site[:-1] if site != 'WT' else site for site in sites],
             medianprops=dict(color='black', 
                              linewidth=1
                              ),
             showfliers=False,
             showmeans=True,
+            patch_artist=True,
             meanprops=dict(marker='o', 
                 markerfacecolor=palette_saturated['orange'], 
                 markeredgecolor='black',
                 markersize=7)
             )
+
 for patch in box['boxes']:
     patch.set_facecolor('silver')
 for i, data in enumerate(grouped_af3, start=1):
@@ -81,11 +84,14 @@ for i, data in enumerate(grouped_af3, start=1):
              alpha=0.6, 
              markersize=5,
              color='dimgrey')
-plt.title('AF3 ZS prediction for Selected Sites')
-plt.xlabel('Site')
-plt.ylabel('ZS (AF3 pAE Cofactor-Protein)')
+plt.title('AF3 ZS prediction for Selected Sites', fontsize=14, fontweight="bold")
+plt.xlabel('Site', fontsize=14, fontweight="bold")
+plt.ylabel('ZS (AF3 pAE Cofactor-Protein)', fontsize=14, fontweight="bold")
+plt.xticks(fontsize=14, fontweight='bold')
+plt.yticks(fontsize=14, fontweight='bold')
 plt.tight_layout()
 plt.savefig(out_SSM)
+
 
 
 # Subfigure for assessing the spearman-rho between GT and ZS
@@ -109,11 +115,11 @@ spearman_df = pd.DataFrame(list(spearman_corrs.items()), columns=['Column', 'Spe
 parent_seq = "MTPSDIPGYDYGRVEKSPITDLEFDLLKKTVMLGEKDVMYLKKAHDVLKDQVDEILDLTGGWAASNEHLIYYVSNPDTGEPIKEYLERAGARFGAWILDTTCRDYNREWLDYQYEVGLRHHRSKKGVTDGVRTAPHIPLRYLIAWIYPQTATIKPFLAKKGGSPEDIEGMYNAWFKSVVLQVAIWSHPYTKEND"
 heatmap_matrix = np.zeros((len(parent_seq), len(amino_acids)))
 
-plate_paths = glob('/disk2/lukas/Master-Thesis/data/PgA93_*_plate.csv')
+plate_paths = glob('/disk2/lukas/Master_Thesis/data/plates/PgA93_*_plate.csv')                            
 for plate_path in plate_paths:
     plate = pd.read_csv(plate_path, header=None)
     fit = plate.iloc[:8]
-    seq = plate.iloc[8:]
+    seq = plate.iloc[8:16]
     seqfit_dict = {aa: [] for aa in amino_acids}
     for row in range(fit.shape[0]):
         for col in range(fit.shape[1]):
@@ -125,18 +131,26 @@ for plate_path in plate_paths:
                 plate_nr = mut_str
                 seqfit_dict[mutant].append(float(fit_val))
             if mut_str == '#PARENT#':
-                seqfit_dict[parent].append(float(fit_val))
-
+                seqfit_dict[parent].append(float(fit_val))  
+    
+      
 
     plate_nr = re.findall(r'\d+', plate_nr)[0]
+    # for 145x manually normalize:
+    parent_avg = np.mean(seqfit_dict[parent])
+    if plate_nr == "145":    
+        seqfit_dict = {key: [x / parent_avg for x in values] for key, values in seqfit_dict.items()}  
     means = [np.mean(seqfit_dict[aa]) if seqfit_dict[aa] else np.nan for aa in amino_acids]
-    errors = [np.std(seqfit_dict[aa]) if len(seqfit_dict[aa]) > 1 else 0 for aa in amino_acids]
+    errors = [np.std(seqfit_dict[aa]) / np.sqrt(len(seqfit_dict[aa])) if len(seqfit_dict[aa]) > 1 else 0 for aa in amino_acids]
     plt.figure(figsize=(10, 5))
     bar_colors = ['darkgray' if aa != parent else palette_light['green'] for aa in amino_acids]
+    
+
+        
+
     plt.bar(x=seqfit_dict.keys(), 
             height=[np.mean(seqfit_dict[key]) for key in seqfit_dict.keys()],
             color=bar_colors,
-            yerr=errors,
             capsize=4)
     for i, aa in enumerate(amino_acids):
         y_vals = seqfit_dict[aa]
@@ -147,16 +161,20 @@ for plate_path in plate_paths:
                     s=20, 
                     zorder=3
                     )    
-    parent_avg = np.mean(seqfit_dict[parent])
-    plt.axhline(y=parent_avg, linestyle='--', color=palette_saturated['orange'], linewidth=1.5, alpha=0.8)
+    
+    for i, (mean, err) in enumerate(zip(means, errors)):
+        if not np.isnan(mean) and err > 0:
+            plt.errorbar(x=i, y=mean, yerr=err, fmt='none', color='black', capsize=4, zorder=3)
+    
+    plt.axhline(y=1, linestyle='--', color=palette_saturated['orange'], linewidth=1.5, alpha=0.8)
     plt.ylabel('Fitness')
     plt.xlabel('Amino Acid')
     plt.title(plate_nr+'X')
-    plt.ylim(0, 2)
+    plt.ylim(0, 2.1)
     plt.tight_layout()
     for spine in plt.gca().spines.values():
         spine.set_visible(False)
-    plt.savefig(f'/disk2/lukas/Master-Thesis/replicate_figures/figure_output/SSM_panel/barplot_{plate_nr}X.png')
+    plt.savefig(f'/disk2/lukas/Master_Thesis/replicate_figures/figure_output/SSM_panel/barplot_{plate_nr}X.png') 
 
     heatmap_matrix[int(plate_nr)-1] = means
 
@@ -269,26 +287,131 @@ hydro_ax.tick_params(axis='x', labelsize=3, width=0.5, length=1, direction='out'
 for label in hydro_ax.get_xticklabels():
     label.set_fontweight('bold')     
 
-heatmap_path = os.path.join(out_dir, 'SSM_heatmap.png')
+heatmap_path = os.path.join(out_dir, 'SSM_panel', 'SSM_heatmap.png')
 plt.savefig(heatmap_path, dpi=900)
 
 
 # Subfigure: Correlation analysis of ZS metrics
+# filter out all rows where no GT data exists
+corr_df_clean = corr_df.dropna(subset=['GT'])
+
+### jackhmmr
 plt.figure()
-plt.plot(corr_df['GT'], 
-         corr_df['AF3'], 
+plt.plot(corr_df_clean['GT'], 
+         corr_df_clean['AF3'], 
          'o', 
          markersize=5,
          color='gray')
 plt.title('ZS AF3 Jackhmmr')
-plt.xlabel('GT Fitness')
-plt.ylabel('ZS')
-for spine in plt.gca().spines.values():
-    spine.set_visible(False)
+plt.xlabel('GT Fitness', fontweight="bold")
+plt.ylabel('ZS', fontweight="bold")
+plt.xlim((0, 2))
 
-corr_dotplot_path = os.path.join(out_dir, 'ZS_corr_dotplot_jackhmmr.png')
+
+ax = plt.gca()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+rho, pval = stats.spearmanr(corr_df_clean['GT'], -corr_df_clean['AF3'])
+ax.text(0.95, 0.05, f"spearman-$\\rho$ = {rho:.2f}\np-value = {pval:.2g}", 
+        transform=ax.transAxes, 
+        ha='right', va='bottom', 
+        fontsize=10,
+        color=palette_saturated['green'],
+        weight='bold')
+
+corr_dotplot_path = os.path.join(out_dir, 'SSM_panel', 'ZS_corr_dotplot_jackhmmr.png')
+plt.savefig(corr_dotplot_path, dpi=900)
+
+
+jackhmmr_BA_path = "/disk2/lukas/Master_Thesis/data/PgA93_ZS_correlation.csv"
+jackhmmr_BA_df = pd.read_csv(jackhmmr_BA_path)
+jackhmmr_BA_df_clean = jackhmmr_BA_df.dropna(subset=['GT'])
+
+#### jackhmmr idx1_idx0
+plt.figure()
+plt.plot(jackhmmr_BA_df_clean['GT'], 
+         -jackhmmr_BA_df_clean['jackhmmr_BA'], 
+         'o', 
+         markersize=5,
+         color='gray')
+plt.title('ZS AF3 jackhmmr_idx1_idx0')
+plt.xlabel('GT Fitness', fontweight="bold")
+plt.ylabel('ZS', fontweight="bold")
+plt.xlim((0, 2))
+
+
+ax = plt.gca()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+rho, pval = stats.spearmanr(jackhmmr_BA_df_clean['GT'], -jackhmmr_BA_df_clean['jackhmmr_BA'])
+ax.text(0.95, 0.05, f"spearman-$\\rho$ = {rho:.2f}\np-value = {pval:.2g}", 
+        transform=ax.transAxes, 
+        ha='right', va='bottom', 
+        fontsize=10,
+        color=palette_saturated['green'],
+        weight='bold')
+
+corr_dotplot_path = os.path.join(out_dir, 'SSM_panel', 'ZS_corr_dotplot_jackhmmr_BA.png')
+plt.savefig(corr_dotplot_path, dpi=900)
+
+#### mmseqs2_idx2idx0
+plt.figure()
+plt.plot(corr_df_clean['GT'], 
+         -corr_df_clean['mmseqs2_idx2idx0'], 
+         'o', 
+         markersize=5,
+         color='gray')
+plt.title('ZS AF3 mmseqs2_idx2idx0')
+plt.xlabel('GT Fitness', fontweight="bold")
+plt.ylabel('ZS', fontweight="bold")
+plt.xlim((0, 2))
+
+
+
+ax = plt.gca()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+rho, pval = stats.spearmanr(corr_df_clean['GT'], -corr_df_clean['mmseqs2_idx2idx0'])
+ax.text(0.95, 0.05, f"spearman-$\\rho$ = {rho:.2f}\np-value = {pval:.2g}", 
+        transform=ax.transAxes, 
+        ha='right', va='bottom', 
+        fontsize=10,
+        color=palette_saturated['green'],
+        weight='bold')
+
+corr_dotplot_path = os.path.join(out_dir, 'SSM_panel', 'ZS_corr_dotplot_mmseqs2_idx2idx0.png')
+plt.savefig(corr_dotplot_path, dpi=900)
+
+#### mmseqs2_idx1_idx0
+plt.figure()
+plt.plot(corr_df_clean['GT'], 
+         -corr_df_clean['mmseqs2'], 
+         'o', 
+         markersize=5,
+         color='gray')
+plt.title('ZS AF3 mmseqs2_idx1_idx0')
+plt.xlabel('GT Fitness', fontweight="bold")
+plt.ylabel('ZS', fontweight="bold")
+plt.xlim((0, 2))
+
+
+ax = plt.gca()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+
+rho, pval = stats.spearmanr(corr_df_clean['GT'], -corr_df_clean['mmseqs2'])
+ax.text(0.95, 0.05, f"spearman-$\\rho$ = {rho:.2f}\np-value = {pval:.2g}", 
+        transform=ax.transAxes, 
+        ha='right', va='bottom', 
+        fontsize=10,
+        color=palette_saturated['green'],
+        weight='bold')
+
+corr_dotplot_path = os.path.join(out_dir, 'SSM_panel', 'ZS_corr_dotplot_mmseqs2_idx1_idx0.png')
 plt.savefig(corr_dotplot_path, dpi=900)
 
 
 
- 

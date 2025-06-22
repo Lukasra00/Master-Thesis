@@ -1,0 +1,12 @@
+{
+"balrog_basedir": "/disk2/lukas/EnzymeOracle/data/GCFID/pool_merged",
+"run_name": "20250602_LR_pool_A",
+"parent_wells": ["C10", "C11", "C12", "G10", "G11", "G12"],
+"out_dir": "/disk2/lukas/Master-Thesis/data",
+"starting_material": 3.84,
+"internal_standard": 4.67,
+"product": 5.45,
+"visualization_partial": "/disk2/lukas/EnzymeOracle/data/LevSeq/dumm_visualization_partial.csv",
+"ZS_table": "/disk2/lukas/EnzymeOracle/data/GCFID/ZS_correlation copy.csv",
+"retardation_comment": "3-site: 3.94, 4.76, 5.542; 5-site: 3.84, 4.67, 5.45"
+}

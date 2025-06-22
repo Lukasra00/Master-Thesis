@@ -70,8 +70,40 @@ class EvalBalrog():
         "  Area   %": 6
         }
         
+        # adds all raw GCFID filepaths to the platemap
         self.add_paths_to_platemap()
-        
+   
+    def add_paths_to_platemap(self):
+        """
+        For each well, adds the raw data paths of the GCFID to the plate map dict.  
+        """
+        for folder in os.listdir(self.balrog_basedir):
+            if folder[-5:-2] in self.plate_map.keys():
+                well_path = os.path.join(self.balrog_basedir, folder)
+                meta_path = os.path.join(self.balrog_basedir, folder, 'Report00.CSV')
+                data_path = os.path.join(self.balrog_basedir, folder, 'REPORT01.CSV')
+                self.plate_map[folder[-5:-2]]['well_path'] = well_path
+                self.plate_map[folder[-5:-2]]['meta_path'] = meta_path
+                self.plate_map[folder[-5:-2]]['data_path'] = data_path
+
+    def seq_map(self):
+        """
+        Takes mutations from the visualization partial and writes to sequence map.
+        Collects all parent wells.
+        """
+        vis_par = pd.read_csv(self.visualization_partial)
+        for well in self.plate_map.keys():
+            well_short = self.well_format_converter(well)
+            var = vis_par.loc[(vis_par["Well"] == well_short) & (vis_par["name"] == self.run_name), "amino_acid_substitutions"].item()
+            self.plate_map[well]["variant"] = var 
+        self.vars = [str(self.plate_map[well]['variant']) for well in self.plate_map.keys()]
+        # gather all parent_wells of the plate
+        self.parent_wells = []
+        for well in self.plate_map.keys():
+            var = self.plate_map[well]["variant"]
+            if var == '#PARENT#':
+                self.parent_wells.append(well)
+
     def find_peak(self, 
                   retention_time: float, 
                   data_headers: list[str], 
@@ -90,19 +122,6 @@ class EvalBalrog():
             print(f'No peak found for retention time {retention_time}.')
             peak_area = 0.
         return peak_area, exact_peak_retention
-    
-    def add_paths_to_platemap(self):
-        """
-        For each well, adds the raw data paths of the GCFID to the plate map dict.  
-        """
-        for folder in os.listdir(self.balrog_basedir):
-            if folder[-5:-2] in self.plate_map.keys():
-                well_path = os.path.join(self.balrog_basedir, folder)
-                meta_path = os.path.join(self.balrog_basedir, folder, 'Report00.CSV')
-                data_path = os.path.join(self.balrog_basedir, folder, 'REPORT01.CSV')
-                self.plate_map[folder[-5:-2]]['well_path'] = well_path
-                self.plate_map[folder[-5:-2]]['meta_path'] = meta_path
-                self.plate_map[folder[-5:-2]]['data_path'] = data_path
     
     def map_fitness(self):
         """
@@ -152,6 +171,7 @@ class EvalBalrog():
                 self.n_peakless_wells += 1
                 
         # Normalize to the average of all parent wells
+        self.parent_wells = ["C10", "C11", "C12", "G10", "G11", "G12"]
         avg_parent_product = np.mean([self.plate_map[parent_well]['product_standardized'] for parent_well in self.parent_wells])
         for well in self.plate_map.keys():
             try:
@@ -163,7 +183,12 @@ class EvalBalrog():
         
         self.score = [float(self.plate_map[well]['product_norm_to_parent']) for well in self.plate_map.keys()]
         self.frac_improved = len([var for var in self.score if var > 1]) / len(self.score)
+        out = {key: self.plate_map[key]['product_norm_to_parent'] for key in self.plate_map.keys()}
+        for well, n in out.items():
+            print(f"{well}:    {n:.2f}")
+        
         ipdb.set_trace()
+
 
 
     def map_fitness_half(self):
@@ -185,6 +210,7 @@ class EvalBalrog():
                 
                 # starting material
                 print('\n',well)
+                self.well = well
                 starting_material_area, _ = self.find_peak(self.starting_material, self.data_headers, data)
                 self.plate_map[well]['starting_material_area'] = starting_material_area
                 
@@ -264,8 +290,8 @@ class EvalBalrog():
                 print(f'Could not generate the normalization to parent wells for well {well}.')
         
         self.score = [float(self.plate_map[well]['product_norm_to_parent']) for well in self.plate_map.keys()]
-        self.frac_improved = len([var for var in self.score if var > 1]) / len(self.score)       
-
+        self.frac_improved = len([var for var in self.score if var > 1]) / len(self.score) 
+        self.score_unnormalized = [float(self.plate_map[well]['product_standardized']) for well in self.plate_map.keys()]#TODO remove   
 
     def well_format_converter(self, well: str):
         """
@@ -273,27 +299,6 @@ class EvalBalrog():
         """
         row, num = well[0], well[1:]
         return f"{row}{int(num)}" if num[0] == "0" else f"{row}{int(num):02d}"
-
-    
-    def seq_map(self):
-        """
-        Writes mutations to the streamlit partial.
-        Writes mutations to the plate map.
-        Collects all parent wells.
-        """
-        vis_par = pd.read_csv(self.visualization_partial)
-        for well in self.plate_map.keys():
-            well_short = self.well_format_converter(well)
-            var = vis_par.loc[(vis_par["Well"] == well_short) & (vis_par["name"] == self.run_name), "amino_acid_substitutions"].item()
-            self.plate_map[well]["variant"] = var 
-        self.vars = [str(self.plate_map[well]['variant']) for well in self.plate_map.keys()]
-        # gather all parent_wells of the plate
-        self.parent_wells = []
-        for well in self.plate_map.keys():
-            var = self.plate_map[well]["variant"]
-            if var == '#PARENT#':
-                self.parent_wells.append(well)
-
 
     def save_streamlit_partial(self):
         """
@@ -331,6 +336,21 @@ class EvalBalrog():
             print('Saved plate array.')
         except Exception as exc:
             print(f'Could not save plate array: {exc}')
+    
+    def save_plate_array_unnormalized(self):
+        """
+        Saves the fitness and the mutations as a plate map (.csv) array.
+        """
+        try:
+            fit_arr = pd.DataFrame([self.score_unnormalized[i:i+12] for i in range(0, 96, 12)])
+            var_arr = pd.DataFrame([self.vars[i:i+12] for i in range(0, 96, 12)])
+            plate = pd.concat([fit_arr, var_arr], axis=0).reset_index(drop=True)
+            out_path = os.path.join(self.out_dir, self.run_name+'_unnormalized_plate.csv')
+            plate.to_csv(out_path, header=False, index=False)
+            print('Saved plate array.')
+        except Exception as exc:
+            print(f'Could not save plate array: {exc}')
+
 
     def print_metrics(self):
         """
@@ -396,7 +416,7 @@ if __name__ == "__main__":
         
         evaluator.seq_map()
         evaluator.map_fitness()
-        evaluator.save_plate_array()
+        evaluator.save_plate_array_unnormalized()
         evaluator.save_streamlit_partial()
         evaluator.print_metrics()
         evaluator.fit_to_ZS_table()
