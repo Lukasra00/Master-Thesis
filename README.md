@@ -60,10 +60,10 @@ All rights reserved.
 
 ## Contact
 
-Lukas Radtke – [radtkel@ethz.ch](mailto:radtkel@ethz.ch)
-Department of Biosystems Science and Engineering, 
+Lukas Radtke – [radtkel@ethz.ch](mailto:radtkel@ethz.ch)\
+Department of Biosystems Science and Engineering, \
 ETH Zurich
 
-Division of Chemistry and Chemical Engineering, 
-California Institute of Technology
+Division of Chemistry and Chemical Engineering, \
+California Institute of Technology\
 
