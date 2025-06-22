@@ -55,12 +55,8 @@ Run parameter are to be specified in the `run_GCFID_postprocessing.json` file.
 cd GCFID_post-processing
 python GCFID_Post-Processing.py --run_json run_GCFID_postprocessing.json
 ```
-
-
-
-## License
-
-[MIT License](LICENSE)
+### License
+All rights reserved.
 
 ## Contact
 
