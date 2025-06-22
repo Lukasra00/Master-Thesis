@@ -6,22 +6,21 @@ with Zero-Shot Predictors]**.
 
 ## Repository Structure
 
-* \`\`
-  
-* \`\`
-  
-* \`\`
-  
-* \`\`
+* \`GCFID_post-processing`
+  Scripts for the post-processing of variant fitness data from gas chromatogeaphy flame ionization detector.
+* \`ZS`
+  Contains all zero-shot predictors implemented in this work.   
+* \`envs`
+   Contains `.yml` files and `requirement.txt` files to run the scripts in this repo.
+* \`simulated_annealing`
+    Contains the scripts to run the implementation of parallel-tempering simulated annealing for protein optimization.
  
-
 ### Prerequisites
 * **Python 3.9+** (tested on 3.10)
 * **Conda** for environment management
 
 ### Installation
 **Clone the repository**
-
    ```bash
    git clone https://github.com/Lukasra00/Master-Thesis.git
    cd Master-Thesis
@@ -39,7 +38,7 @@ pip install -r envs/simulated_annealing_requirements.txt
 The run parameters can be specified as in.
 `simulated_annealing/LUT_example.json`
 
-The run can then be started by:
+The run is started by:
 ```bash
 cd simulated_annealing
 python simulated_annealing/reSA.py --LUT_json path/to/LUT_example.json
