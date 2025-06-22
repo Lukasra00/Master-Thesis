@@ -1,8 +1,4 @@
-# Master Thesis Data Generation Scripts
-
-This repository contains the scripts used for the Master’s Thesis 
-**\[Engineering Novel Enzyme Reactivities
-with Zero-Shot Predictors]**.
+# Engineering Novel Enzyme Reactivities with Zero-Shot Predictors
 
 ## Repository Structure
 
