@@ -41,7 +41,7 @@ python simulated_annealing/reSA.py --LUT_json path/to/LUT_example.json
 ```
 
 ### Zero-Shot Prediction Pipeline
-Run preprocess_all() from substrate_aware.preprocess to preprocess the data.
+Data and instructions for the individual ZS predictors are given in the Thesis methods section.
 Run individual zs predictors by:
 ```bash
 cd ZS.zs
