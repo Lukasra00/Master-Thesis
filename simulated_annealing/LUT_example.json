@@ -1,0 +1,43 @@
+{
+  "run": {
+    "sequence": "MTPSDI...",
+    "mutate_res": [
+      56,
+      60,
+      86,
+      90,
+      145
+    ],
+    "n_steps": 1000,
+    "annealing_rate": 0.99,
+    "n_replicas": 4,
+    "exchange_interval": 5,
+    "stepsize": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "temperature": 0.5,
+    "log_dir": "log/dir/path",
+    "LUT_path": "LUT/write/path",
+    "log_name": "simulated_annealing-log",
+    "backup_every_n": 10,
+    "device": 0,
+    "protein_chain_idx": 0,
+    "cofactor_chain_idx": 1,
+    "protname": "example_portein",
+    "ligand": "C1CC(O1)C1=CC=CC=C1",
+    "cofactor": "C=CC1=C(C)CN",
+    "n_workers": 1,
+    "parallel_dir": "/disk2/lukas/EnzymeOracle/data/mcmc_pga93/parallel_dir",
+    "msa_tmp_dir": "/path/to/a/tmp/dir",
+    "msa_targetDB": "path/to/mmseqs2/db/uniref90_conv",
+    "af_input": "path/to/dir/with/af_input/files",
+    "models": "path/to/af3_inference/model",
+    "public_databases": "path/to/af3_inference/databases",
+    "alphafold3": "path/to/docker/alphafold3"
+  },
+  "chain": {},
+  "accepted_chain": {}
+}

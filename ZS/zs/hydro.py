@@ -28,7 +28,7 @@ import MDAnalysis as mda
 from openbabel import pybel
 import tempfile
 
-from Master_Thesis.ZS.zs.plip import get_plip_active_site_dict
+from Master_Thesis.ZS.zs.hydrogen_bonds import get_plip_active_site_dict
 from Master_Thesis.ZS.util import ligand_smiles2pdbqt, convert_pdbqt_to_pdb
 from Master_Thesis.ZS.global_param import AA_DICT, ENZYME_INFO_DICT
 from Master_Thesis.ZS.preprocess import ZSData
