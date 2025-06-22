@@ -2,7 +2,7 @@
 
 ## Repository Structure
 
-* `GCFID_post-processing`
+* `GCFID_post-processing`\
   Scripts for the post-processing of variant fitness data from gas chromatogeaphy flame ionization detector.
 * `ZS`
   Contains all zero-shot predictors implemented in this work.   
@@ -64,7 +64,7 @@ python GCFID_Post-Processing.py --run_json run_GCFID_postprocessing.json
 
 ## Contact
 
-Lukas Ra – [radtkel@ethz.ch](mailto:radtkel@ethz.ch)
+Lukas Radtke – [radtkel@ethz.ch](mailto:radtkel@ethz.ch)
 Department of Biosystems Science and Engineering, 
 ETH Zurich
 
