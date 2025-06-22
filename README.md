@@ -41,7 +41,7 @@ python simulated_annealing/reSA.py --LUT_json path/to/LUT_example.json
 ```
 
 ### Zero-Shot Prediction Pipeline
-Data and instructions for the individual ZS predictors are given in the Thesis methods section.
+Data and instructions for the individual ZS predictors are given in the thesis methods section.
 Run individual zs predictors by:
 ```bash
 cd ZS.zs
@@ -65,5 +65,5 @@ Department of Biosystems Science and Engineering, \
 ETH Zurich
 
 Division of Chemistry and Chemical Engineering, \
-California Institute of Technology\
+California Institute of Technology
 
