@@ -1,4 +1,6 @@
 # Engineering Novel Enzyme Reactivities with Zero-Shot Predictors
+This work is a contribution to the paper: "Substrate-Aware Zero-Shot Predictors for Non-Native Enzyme Activities"
+[link](https://openreview.net/forum?id=IqPlnXw1BJ&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DICLR.cc%2F2025%2FWorkshop%2FGEM%2FAuthors%23your-submissions))
 
 ## Repository Structure
 
